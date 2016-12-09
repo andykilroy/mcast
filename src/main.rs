@@ -6,6 +6,7 @@ use std::net::SocketAddrV4;
 use std::net::Ipv4Addr;
 use std::error::Error;
 use std::str::FromStr;
+use std::str;
 use std::clone::Clone;
 use std::marker::Copy;
 use std::thread;
@@ -61,6 +62,7 @@ fn read_from_stdin(nic: Ipv4Addr, grp_sock_addr: SocketAddrV4) {
     loop {
         istream.read_line(&mut from_in);
         snd_sock.send_to(from_in.as_bytes(), grp_sock_addr);
+        from_in.clear();
     }
 }
 
@@ -73,6 +75,9 @@ fn mcast_reader(bindaddr: &str,
     socket.join_multicast_v4(mcastgrp, interface).unwrap();
     loop {
         let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
+        let sl : &[u8] = &rcv_buf[0..byte_count];
+        let s = str::from_utf8(sl).unwrap();
+        print!("{}", s);
     }
 }
 
