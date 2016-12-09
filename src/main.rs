@@ -55,14 +55,14 @@ fn read_params() -> Result<Params, AddrParseError> {
 
 
 
-fn read_from_stdin(nic: Ipv4Addr, grp_sock_addr: SocketAddrV4) {
-    let snd_sock = UdpSocket::bind(SocketAddrV4::new(nic, 0)).unwrap();
-    let mut from_in = String::new();
+fn read_from_stdin(bindaddr: Ipv4Addr, dest: SocketAddrV4) {
+    let snd_sock = UdpSocket::bind(SocketAddrV4::new(bindaddr, 0)).unwrap();
     let istream = std::io::stdin();
 
+    let mut from_in = String::new();
     loop {
         istream.read_line(&mut from_in);
-        snd_sock.send_to(from_in.as_bytes(), grp_sock_addr);
+        snd_sock.send_to(from_in.as_bytes(), dest);
         from_in.clear();
     }
 }
@@ -74,8 +74,13 @@ fn mcast_reader_v4(bindaddr:  &SocketAddrV4,
                    interface: &Ipv4Addr      ) {
     let socket = UdpSocket::bind(bindaddr).unwrap();
     socket.join_multicast_v4(mcastgrp, interface).unwrap();
-    let mut rcv_buf: [u8; 65536] = [0; 65536];
+    udp_read_loop(&socket);
+}
 
+
+
+fn udp_read_loop(socket: &UdpSocket) {
+    let mut rcv_buf: [u8; 65536] = [0; 65536];
     loop {
         let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
         let s = str::from_utf8(&rcv_buf[0..byte_count]).unwrap();
