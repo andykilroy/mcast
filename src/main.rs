@@ -1,14 +1,10 @@
 use std::net::UdpSocket;
 use std::net::AddrParseError;
-use std::net::ToSocketAddrs;
-use std::net::SocketAddr;
 use std::net::SocketAddrV4;
 use std::net::Ipv4Addr;
-use std::error::Error;
 use std::str::FromStr;
 use std::str;
 use std::clone::Clone;
-use std::marker::Copy;
 use std::thread;
 
 
@@ -60,7 +56,7 @@ fn read_params() -> Result<Params, AddrParseError> {
 
 
 fn read_from_stdin(nic: Ipv4Addr, grp_sock_addr: SocketAddrV4) {
-    let mut snd_sock = UdpSocket::bind(SocketAddrV4::new(nic, 0)).unwrap();
+    let snd_sock = UdpSocket::bind(SocketAddrV4::new(nic, 0)).unwrap();
     let mut from_in = String::new();
     let istream = std::io::stdin();
 
@@ -76,14 +72,13 @@ fn read_from_stdin(nic: Ipv4Addr, grp_sock_addr: SocketAddrV4) {
 fn mcast_reader_v4(bindaddr:  &SocketAddrV4,
                    mcastgrp:  &Ipv4Addr,
                    interface: &Ipv4Addr      ) {
-    let mut socket = UdpSocket::bind(bindaddr).unwrap();
+    let socket = UdpSocket::bind(bindaddr).unwrap();
+    socket.join_multicast_v4(mcastgrp, interface).unwrap();
     let mut rcv_buf: [u8; 65536] = [0; 65536];
 
-    socket.join_multicast_v4(mcastgrp, interface).unwrap();
     loop {
         let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
-        let sl : &[u8] = &rcv_buf[0..byte_count];
-        let s = str::from_utf8(sl).unwrap();
+        let s = str::from_utf8(&rcv_buf[0..byte_count]).unwrap();
         print!("from {} rcvd {}", sender, s);
     }
 }
