@@ -48,6 +48,7 @@ fn use_parameters(params: Params) {
     }
 
     read_from_stdin(params.nic, params.grp_sock_addr).unwrap();
+    std::process::exit(0);
 }
 
 
@@ -74,12 +75,24 @@ fn read_from_stdin(bindaddr: Ipv4Addr, dest: SocketAddrV4) -> io::Result<()> {
 
     let mut from_in = String::new();
     loop {
-        istream.read_line(&mut from_in)?;
-        snd_sock.send_to(from_in.as_bytes(), dest)?;
+        match istream.read_line(&mut from_in) {
+            Ok(0) => return Ok(()),
+            Ok(n) => send_all_bytes(from_in.trim_right().as_bytes(), &snd_sock, dest)?,
+            Err(e) => return Err(e)
+        }
         from_in.clear();
     }
 }
 
+fn send_all_bytes(bytes: &[u8],
+                  sock: &UdpSocket,
+                  dest: SocketAddrV4) -> io::Result<()> {
+    match sock.send_to(bytes, dest) {
+        Ok(0) => Err(io::Error::new(io::ErrorKind::WriteZero, "wrote nothing to socket")),
+        Ok(_) => Ok(()),
+        Err(e) => Err(e)
+    }
+}
 
 
 fn mcast_reader_v4(bindaddr:  &SocketAddrV4,
