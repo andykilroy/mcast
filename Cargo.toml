@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Andrew Kilroy <7545475+andykilroy@users.noreply.github.com>"]
 
 [dependencies]
+socket2 = "0.3.1"
