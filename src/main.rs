@@ -43,16 +43,16 @@ impl FromStr for Command {
 fn main() {
     match read_params() {
         Ok(params) => use_parameters(params),
-        Err(e) => eprintln!("could not parse params, {}", e)
+        Err(e) => eprintln!("Could not parse params, {}", e)
     };
 }
 
 fn read_params() -> std::result::Result<Params, String> {
+    let usage_string = "Usage: mcast send|listen <group:ip> <port:int> <nic:ip>";
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 5 {
-        return Err(format!("expected {} parameters, but there were {} in {:?}", 4, args.len() - 1, args))
+        return Err(format!("expected more\n{}", usage_string))
     }
-    let usage_string = "Usage: mcast send|listen <group:ip> <port:int> <nic:ip>";
     let act = Command::from_str(&args[1]).map_err(|_| usage_string)?;
     let grp = Ipv4Addr::from_str(&args[2]).map_err(|_| usage_string)?;
     let port = u16::from_str(&args[3]).map_err(|_| usage_string)?;
