@@ -8,8 +8,6 @@ use std::io;
 use socket2::{SockAddr, Socket, Domain, Type, Protocol};
 
 
-
-
 struct Params {
     action: Command,
     grp_sock_addr: SocketAddrV4,
@@ -39,9 +37,6 @@ impl FromStr for Command {
     }
 }
 
-//impl Clone for Params {
-//    fn clone(&self) -> Params { *self }
-//}
 
 
 
@@ -51,27 +46,6 @@ fn main() {
         Err(e) => eprintln!("could not parse params, {}", e)
     };
 }
-
-fn use_parameters(params: Params) {
-    let any = Ipv4Addr::new(0, 0, 0, 0);
-    let bind_sock_addr = SocketAddrV4::new(any, params.grp_sock_addr.port());
-
-    match params.action {
-        Command::SEND =>
-            read_from_stdin(
-                params.nic,
-                params.grp_sock_addr
-            ).unwrap(),
-        Command::LISTEN =>
-            mcast_reader_v4(
-                &bind_sock_addr,
-                &params.grp_sock_addr.ip(),
-                &params.nic
-            ).unwrap(),
-    }
-}
-
-
 
 fn read_params() -> std::result::Result<Params, String> {
     let args: Vec<String> = std::env::args().collect();
@@ -87,6 +61,29 @@ fn read_params() -> std::result::Result<Params, String> {
     Ok(Params {action: act, grp_sock_addr: SocketAddrV4::new(grp, port), nic: nic})
 }
 
+fn use_parameters(params: Params) {
+    let any = Ipv4Addr::new(0, 0, 0, 0);
+    let bind_sock_addr = SocketAddrV4::new(any, params.grp_sock_addr.port());
+
+    let res = match params.action {
+        Command::SEND =>
+            read_from_stdin(
+                params.nic,
+                params.grp_sock_addr
+            ),
+        Command::LISTEN =>
+            mcast_reader_v4(
+                &bind_sock_addr,
+                &params.grp_sock_addr.ip(),
+                &params.nic
+            ),
+    };
+
+    match res {
+        Err(e) => eprintln!("error while running: {}", e),
+        _ => ()
+    }
+}
 
 
 fn read_from_stdin(b: Ipv4Addr, d: SocketAddrV4) -> io::Result<()> {
@@ -138,7 +135,7 @@ fn udp_read_loop(socket: &Socket) -> io::Result<()> {
     loop {
         let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
         let s = str::from_utf8(&rcv_buf[0..byte_count]).unwrap();
-        println!("from {} ---- '{}'", sender.as_inet().unwrap(), s);
+        println!("from /{}  {}", sender.as_inet().unwrap(), s);
     }
 }
 
