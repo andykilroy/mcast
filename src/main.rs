@@ -1,6 +1,5 @@
 extern crate socket2;
 
-use std::net::UdpSocket;
 use std::net::SocketAddrV4;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
@@ -90,16 +89,19 @@ fn read_params() -> std::result::Result<Params, String> {
 
 
 
-fn read_from_stdin(bindaddr: Ipv4Addr, dest: SocketAddrV4) -> io::Result<()> {
-    let snd_sock = UdpSocket::bind(SocketAddrV4::new(bindaddr, 0)).unwrap();
-    // TODO set the ttl
+fn read_from_stdin(b: Ipv4Addr, d: SocketAddrV4) -> io::Result<()> {
+    let snd_sock = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
+    let bindaddr = SockAddr::from(SocketAddrV4::new(b, 0));
+    let dest = SockAddr::from(d);
+    snd_sock.set_ttl(1)?;
+    snd_sock.bind(&bindaddr)?;
     let istream = std::io::stdin();
 
     let mut from_in = String::new();
     loop {
         match istream.read_line(&mut from_in) {
             Ok(0) => return Ok(()),
-            Ok(_n) => send_all_bytes(from_in.trim_right().as_bytes(), &snd_sock, dest)?,
+            Ok(_n) => send_all_bytes(from_in.trim_right().as_bytes(), &snd_sock, &dest)?,
             Err(e) => return Err(e)
         }
         from_in.clear();
@@ -107,8 +109,8 @@ fn read_from_stdin(bindaddr: Ipv4Addr, dest: SocketAddrV4) -> io::Result<()> {
 }
 
 fn send_all_bytes(bytes: &[u8],
-                  sock: &UdpSocket,
-                  dest: SocketAddrV4) -> io::Result<()> {
+                  sock: &Socket,
+                  dest: &SockAddr) -> io::Result<()> {
     match sock.send_to(bytes, dest) {
         Ok(_) => Ok(()),
         Err(e) => Err(e)
@@ -136,7 +138,7 @@ fn udp_read_loop(socket: &Socket) -> io::Result<()> {
     loop {
         let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
         let s = str::from_utf8(&rcv_buf[0..byte_count]).unwrap();
-        println!("from {} rcvd '{}'", sender.as_inet().unwrap(), s);
+        println!("from {} ---- '{}'", sender.as_inet().unwrap(), s);
     }
 }
 
