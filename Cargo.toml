@@ -1,6 +1,6 @@
 [package]
 name = "mcast"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Andrew Kilroy <7545475+andykilroy@users.noreply.github.com>"]
 
 
