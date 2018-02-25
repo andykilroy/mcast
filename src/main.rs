@@ -67,7 +67,7 @@ fn use_parameters(params: Params) {
 
     let res = match params.action {
         Command::SEND =>
-            read_from_stdin(
+            send_to_mcast_socket(
                 params.nic,
                 params.grp_sock_addr
             ),
@@ -86,11 +86,11 @@ fn use_parameters(params: Params) {
 }
 
 
-fn read_from_stdin(b: Ipv4Addr, d: SocketAddrV4) -> io::Result<()> {
+fn send_to_mcast_socket(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
     let snd_sock = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
-    let bindaddr = SockAddr::from(SocketAddrV4::new(b, 0));
-    let dest = SockAddr::from(d);
-    snd_sock.set_ttl(1)?;
+    let bindaddr = SockAddr::from(SocketAddrV4::new(nic, 0));
+    let dest = SockAddr::from(group);
+    snd_sock.set_multicast_ttl_v4(1)?;
     snd_sock.bind(&bindaddr)?;
     let istream = std::io::stdin();
 
@@ -121,6 +121,7 @@ fn mcast_reader_v4(bindaddr:  &SocketAddrV4,
     let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let addr = SockAddr::from(*bindaddr);
     socket.set_reuse_address(true)?;
+    socket.set_reuse_port(true)?;
     socket.bind(&addr)?;
 
     socket.join_multicast_v4(mcastgrp, interface)?;
