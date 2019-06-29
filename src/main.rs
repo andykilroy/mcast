@@ -8,11 +8,7 @@ use std::io;
 use std::process;
 use socket2::{SockAddr, Socket, Domain, Type, Protocol};
 
-use clap::{App, Arg, ArgMatches, SubCommand};
-use std::io::ErrorKind;
-
-
-
+use clap::{App, Arg, SubCommand};
 
 
 fn main() {
@@ -80,7 +76,7 @@ fn start_app() -> std::result::Result<(), String> {
                 &subm.value_of("NIC_IP").expect("a nic was expected"),
             )
         },
-        (cmd, _) => Err("unsupported command, try --help option".to_string())
+        (_, _) => Err("unsupported command, try --help option".to_string())
     }
 }
 
@@ -90,17 +86,17 @@ fn handle_listen(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), Str
     let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("could not parse group address {}, {}", grp_str, e))?;
     let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("could not parse nic address {}, {}", nic_str, e))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
-    mcast_reader_v4(&bind_sock_addr, &grp, &nic).map_err(|e| format!("{}", e))
+    mcast_v4_readfrom(bind_sock_addr, grp, nic).map_err(|e| format!("{}", e))
 }
 
 fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), String> {
     let port = u16::from_str(port_str).map_err(|e| format!("could not parse port number {}, {}", port_str, e))?;
     let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("could not parse group address {}, {}", grp_str, e))?;
     let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("could not parse nic address {}, {}", nic_str, e))?;
-    send_to_mcast_socket(nic, SocketAddrV4::new(grp, port)).map_err(|e| format!("{}", e))
+    mcast_v4_sendto(nic, SocketAddrV4::new(grp, port)).map_err(|e| format!("{}", e))
 }
 
-fn send_to_mcast_socket(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
+fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
     let snd_sock = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let bindaddr = SockAddr::from(SocketAddrV4::new(nic, 0));
     let dest = SockAddr::from(group);
@@ -129,16 +125,16 @@ fn send_all_bytes(bytes: &[u8],
 }
 
 
-fn mcast_reader_v4(bindaddr:  &SocketAddrV4,
-                   mcastgrp:  &Ipv4Addr,
-                   interface: &Ipv4Addr      ) -> io::Result<()> {
+fn mcast_v4_readfrom(bindaddr:  SocketAddrV4,
+                     mcastgrp:  Ipv4Addr,
+                     interface: Ipv4Addr) -> io::Result<()> {
     let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
-    let addr = SockAddr::from(*bindaddr);
+    let addr = SockAddr::from(bindaddr);
     socket.set_reuse_address(true)?;
     socket.set_reuse_port(true)?;
     socket.bind(&addr)?;
 
-    socket.join_multicast_v4(mcastgrp, interface)?;
+    socket.join_multicast_v4(&mcastgrp, &interface)?;
     udp_read_loop(&socket)?;
     Ok(())
 }
