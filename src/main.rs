@@ -12,35 +12,6 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use std::io::ErrorKind;
 
 
-struct Params {
-    action: Command,
-    grp_sock_addr: SocketAddrV4,
-    nic: Ipv4Addr,
-}
-
-#[derive(Debug)]
-enum Command {
-    SEND,
-    LISTEN,
-//    JOIN,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CmdParseError{
-
-}
-
-impl FromStr for Command {
-    type Err = CmdParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "send" => Ok(Command::SEND),
-            "listen" => Ok(Command::LISTEN),
-            _ => Err(CmdParseError{})
-        }
-    }
-}
-
 
 
 
@@ -128,31 +99,6 @@ fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), Strin
     let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("could not parse nic address {}, {}", nic_str, e))?;
     send_to_mcast_socket(nic, SocketAddrV4::new(grp, port)).map_err(|e| format!("{}", e))
 }
-
-fn use_parameters(params: Params) {
-    let any = Ipv4Addr::new(0, 0, 0, 0);
-    let bind_sock_addr = SocketAddrV4::new(any, params.grp_sock_addr.port());
-
-    let res = match params.action {
-        Command::SEND =>
-            send_to_mcast_socket(
-                params.nic,
-                params.grp_sock_addr
-            ),
-        Command::LISTEN =>
-            mcast_reader_v4(
-                &bind_sock_addr,
-                &params.grp_sock_addr.ip(),
-                &params.nic
-            ),
-    };
-
-    match res {
-        Err(e) => eprintln!("error while running: {}", e),
-        _ => ()
-    }
-}
-
 
 fn send_to_mcast_socket(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
     let snd_sock = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
