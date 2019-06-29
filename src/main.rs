@@ -98,7 +98,7 @@ fn send_to_mcast_socket(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
     loop {
         match istream.read_line(&mut from_in) {
             Ok(0) => return Ok(()),
-            Ok(_n) => send_all_bytes(from_in.trim_right().as_bytes(), &snd_sock, &dest)?,
+            Ok(_n) => send_all_bytes(from_in.trim_end().as_bytes(), &snd_sock, &dest)?,
             Err(e) => return Err(e)
         }
         from_in.clear();

@@ -1,9 +1,12 @@
 [package]
 name = "mcast"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Andrew Kilroy <7545475+andykilroy@users.noreply.github.com>"]
+edition = "2018"
 
+[dependencies]
+clap = "2.33.0"
 
 [dependencies.socket2]
-version = "0.3.1"
+version = "0.3.9"
 features = ["reuseport"]
