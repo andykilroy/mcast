@@ -9,6 +9,7 @@ use std::process;
 use socket2::{SockAddr, Socket, Domain, Type, Protocol};
 
 use clap::{App, Arg, SubCommand};
+use std::io::Write;
 
 
 fn main() {
@@ -135,13 +136,13 @@ fn mcast_v4_readfrom(bindaddr:  SocketAddrV4,
     socket.bind(&addr)?;
 
     socket.join_multicast_v4(&mcastgrp, &interface)?;
-    udp_read_loop(&socket)?;
+    binary_read_loop(&socket)?;
     Ok(())
 }
 
 
 
-fn udp_read_loop(socket: &Socket) -> io::Result<()> {
+fn read_loop_with_srcaddr(socket: &Socket) -> io::Result<()> {
     let mut rcv_buf: [u8; 65536] = [0; 65536];
     loop {
         let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
@@ -150,3 +151,12 @@ fn udp_read_loop(socket: &Socket) -> io::Result<()> {
     }
 }
 
+fn binary_read_loop(socket: &Socket) -> io::Result<()> {
+    let mut rcv_buf: [u8; 65536] = [0; 65536];
+    let mut stdout = std::io::stdout();
+    loop {
+        let (byte_count, _sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
+        stdout.write_all(&rcv_buf[0..byte_count])?;
+        stdout.flush()?;
+    }
+}
