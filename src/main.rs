@@ -9,7 +9,7 @@ use std::process;
 use socket2::{SockAddr, Socket, Domain, Type, Protocol};
 
 use clap::{App, Arg, SubCommand};
-use std::io::Write;
+use std::io::{Write, Read};
 
 
 fn main() {
@@ -103,16 +103,15 @@ fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
     let dest = SockAddr::from(group);
     snd_sock.set_multicast_ttl_v4(1)?;
     snd_sock.bind(&bindaddr)?;
-    let istream = std::io::stdin();
+    let mut istream = std::io::stdin();
 
-    let mut from_in = String::new();
+    let mut from_in: [u8; 65536] = [0; 65536];
     loop {
-        match istream.read_line(&mut from_in) {
+        match istream.read(&mut from_in) {
             Ok(0) => return Ok(()),
-            Ok(_n) => send_all_bytes(from_in.trim_end().as_bytes(), &snd_sock, &dest)?,
+            Ok(n) => send_all_bytes(&from_in[0..n], &snd_sock, &dest)?,
             Err(e) => return Err(e)
         }
-        from_in.clear();
     }
 }
 
