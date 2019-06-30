@@ -6,7 +6,5 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.0"
+socket2 = { version = "0.3.9", features = ["reuseport"] }
 
-[dependencies.socket2]
-version = "0.3.9"
-features = ["reuseport"]
