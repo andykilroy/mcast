@@ -9,7 +9,7 @@ use std::str;
 use std::str::FromStr;
 
 use clap::{App, Arg, SubCommand};
-use std::io::{Read, Write};
+use std::io::{Read, Write, Stdout};
 
 fn main() {
     if let Err(e) = start_app() {
@@ -47,7 +47,14 @@ fn start_app() -> std::result::Result<(), String> {
                         .long("printsrc")
                         .help("Print where the datagram came from")
                         .required(false),
-                ),
+                )
+                .arg(
+                    Arg::with_name("BASE64ENC")
+                        .long("base64")
+                        .help("Encode incoming datagrams in base64")
+                        .required(false),
+                )
+            ,
         )
         .subcommand(
             SubCommand::with_name("send")
@@ -76,6 +83,7 @@ fn start_app() -> std::result::Result<(), String> {
             &subm.value_of("PORT").expect("a port number was expected"),
             &subm.value_of("NIC_IP").expect("a nic was expected"),
             subm.is_present("PRINT_SRCADDR"),
+            subm.is_present("BASE64ENC"),
         ),
         ("send", Some(subm)) => handle_send(
             &subm.value_of("GROUP_IP").expect("a multicast group was expected"),
@@ -91,13 +99,14 @@ fn handle_listen(
     port_str: &str,
     nic_str: &str,
     printsrc: bool,
+    base64enc: bool
 ) -> Result<(), String> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
     let port = u16::from_str(port_str).map_err(|e| format!("could not parse port number {}, {}", port_str, e))?;
     let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("could not parse group address {}, {}", grp_str, e))?;
     let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("could not parse nic address {}, {}", nic_str, e))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
-    mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc).map_err(|e| format!("{}", e))
+    mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc, base64enc).map_err(|e| format!("{}", e))
 }
 
 fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), String> {
@@ -137,6 +146,7 @@ fn mcast_v4_readfrom(
     mcastgrp: Ipv4Addr,
     interface: Ipv4Addr,
     printsrc: bool,
+    base64enc: bool,
 ) -> io::Result<()> {
     let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let addr = SockAddr::from(bindaddr);
@@ -145,19 +155,29 @@ fn mcast_v4_readfrom(
     socket.bind(&addr)?;
 
     socket.join_multicast_v4(&mcastgrp, &interface)?;
-    binary_read_loop(&socket, printsrc)?;
+    read_loop(&socket, printsrc, base64enc)?;
     Ok(())
 }
 
-fn binary_read_loop(socket: &Socket, printsrc: bool) -> io::Result<()> {
+fn read_loop(socket: &Socket, printsrc: bool, base64enc: bool) -> io::Result<()> {
     let mut rcv_buf: [u8; 65536] = [0; 65536];
     let mut stdout = std::io::stdout();
     loop {
         let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
         if printsrc {
-            writeln!(stdout, "from /{}", sender.as_inet().unwrap())?;
+            writeln!(stdout, "### from /{}", sender.as_inet().unwrap())?;
         }
-        stdout.write_all(&rcv_buf[0..byte_count])?;
+        if base64enc {
+            write_base64(&mut stdout, &rcv_buf[0..byte_count]);
+        } else {
+            stdout.write_all(&rcv_buf[0..byte_count])?;
+        }
         stdout.flush()?;
     }
+}
+
+fn write_base64(stdout: &mut Stdout, input: &[u8]) -> io::Result<()> {
+    let encoded = base64::encode(input);
+    stdout.write_all(encoded.as_bytes())?;
+    stdout.write_all("\n".as_bytes())
 }
