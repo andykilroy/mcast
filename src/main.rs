@@ -177,7 +177,18 @@ fn read_loop(socket: &Socket, printsrc: bool, base64enc: bool) -> io::Result<()>
 }
 
 fn write_base64(stdout: &mut Stdout, input: &[u8]) -> io::Result<()> {
-    let encoded = base64::encode(input);
+    // a length that will produce a base64 encoded line of 64 chars.
+    let piece_length = 48;
+    let limit = input.len() / piece_length;
+    for i in 0..limit {
+        let start = i * piece_length;
+        let end = (i + 1) * piece_length;
+        let encoded = base64::encode(&input[start..end]);
+        stdout.write_all(encoded.as_bytes())?;
+        stdout.write_all("\n".as_bytes())?;
+    }
+
+    let encoded = base64::encode(&input[(limit * piece_length)..]);
     stdout.write_all(encoded.as_bytes())?;
     stdout.write_all("\n".as_bytes())
 }
