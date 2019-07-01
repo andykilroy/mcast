@@ -1,16 +1,15 @@
 extern crate socket2;
 
-use std::net::SocketAddrV4;
-use std::net::Ipv4Addr;
-use std::str::FromStr;
-use std::str;
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use std::io;
+use std::net::Ipv4Addr;
+use std::net::SocketAddrV4;
 use std::process;
-use socket2::{SockAddr, Socket, Domain, Type, Protocol};
+use std::str;
+use std::str::FromStr;
 
 use clap::{App, Arg, SubCommand};
-use std::io::{Write, Read};
-
+use std::io::{Read, Write};
 
 fn main() {
     if let Err(e) = start_app() {
@@ -25,22 +24,30 @@ fn start_app() -> std::result::Result<(), String> {
         .about("A tool for testing multicast UDP")
         .subcommand(
             SubCommand::with_name("listen")
-                .about("Listen on a particular network interface for datagrams from a multicast group")
+                .about(
+                    "Listen on a particular network interface for datagrams from a multicast group",
+                )
                 .arg(
                     Arg::with_name("GROUP_IP")
                         .help("The multicast group to join")
-                        .required(true)
+                        .required(true),
                 )
                 .arg(
                     Arg::with_name("PORT")
                         .help("The port to bind on")
-                        .required(true)
+                        .required(true),
                 )
                 .arg(
                     Arg::with_name("NIC_IP")
                         .help("The network interface on which to send the join requests")
-                        .required(true)
+                        .required(true),
                 )
+                .arg(
+                    Arg::with_name("PRINT_SRCADDR")
+                        .long("printsrc")
+                        .help("Print where the datagram came from")
+                        .required(false),
+                ),
         )
         .subcommand(
             SubCommand::with_name("send")
@@ -48,46 +55,49 @@ fn start_app() -> std::result::Result<(), String> {
                 .arg(
                     Arg::with_name("GROUP_IP")
                         .help("The multicast group to send to")
-                        .required(true)
+                        .required(true),
                 )
                 .arg(
                     Arg::with_name("PORT")
                         .help("The destination port to send to")
-                        .required(true)
+                        .required(true),
                 )
                 .arg(
                     Arg::with_name("NIC_IP")
                         .help("The network interface on which to send the datagrams")
-                        .required(true)
-                )
-        ).get_matches();
+                        .required(true),
+                ),
+        )
+        .get_matches();
 
     match matches.subcommand() {
-        ("listen", Some(subm)) => {
-            handle_listen(
-                &subm.value_of("GROUP_IP").expect("a multicast group was expected"),
-                &subm.value_of("PORT").expect("a port number was expected"),
-                &subm.value_of("NIC_IP").expect("a nic was expected"),
-            )
-        },
-        ("send", Some(subm)) => {
-            handle_send(
-                &subm.value_of("GROUP_IP").expect("a multicast group was expected"),
-                &subm.value_of("PORT").expect("a port number was expected"),
-                &subm.value_of("NIC_IP").expect("a nic was expected"),
-            )
-        },
-        (_, _) => Err("unsupported command, try --help option".to_string())
+        ("listen", Some(subm)) => handle_listen(
+            &subm.value_of("GROUP_IP").expect("a multicast group was expected"),
+            &subm.value_of("PORT").expect("a port number was expected"),
+            &subm.value_of("NIC_IP").expect("a nic was expected"),
+            subm.is_present("PRINT_SRCADDR"),
+        ),
+        ("send", Some(subm)) => handle_send(
+            &subm.value_of("GROUP_IP").expect("a multicast group was expected"),
+            &subm.value_of("PORT").expect("a port number was expected"),
+            &subm.value_of("NIC_IP").expect("a nic was expected"),
+        ),
+        (_, _) => Err("unsupported command, try --help option".to_string()),
     }
 }
 
-fn handle_listen(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), String> {
+fn handle_listen(
+    grp_str: &str,
+    port_str: &str,
+    nic_str: &str,
+    printsrc: bool,
+) -> Result<(), String> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
     let port = u16::from_str(port_str).map_err(|e| format!("could not parse port number {}, {}", port_str, e))?;
     let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("could not parse group address {}, {}", grp_str, e))?;
     let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("could not parse nic address {}, {}", nic_str, e))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
-    mcast_v4_readfrom(bind_sock_addr, grp, nic).map_err(|e| format!("{}", e))
+    mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc).map_err(|e| format!("{}", e))
 }
 
 fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), String> {
@@ -110,24 +120,24 @@ fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
         match istream.read(&mut from_in) {
             Ok(0) => return Ok(()),
             Ok(n) => send_all_bytes(&from_in[0..n], &snd_sock, &dest)?,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         }
     }
 }
 
-fn send_all_bytes(bytes: &[u8],
-                  sock: &Socket,
-                  dest: &SockAddr) -> io::Result<()> {
+fn send_all_bytes(bytes: &[u8], sock: &Socket, dest: &SockAddr) -> io::Result<()> {
     match sock.send_to(bytes, dest) {
         Ok(_) => Ok(()),
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     }
 }
 
-
-fn mcast_v4_readfrom(bindaddr:  SocketAddrV4,
-                     mcastgrp:  Ipv4Addr,
-                     interface: Ipv4Addr) -> io::Result<()> {
+fn mcast_v4_readfrom(
+    bindaddr: SocketAddrV4,
+    mcastgrp: Ipv4Addr,
+    interface: Ipv4Addr,
+    printsrc: bool,
+) -> io::Result<()> {
     let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let addr = SockAddr::from(bindaddr);
     socket.set_reuse_address(true)?;
@@ -135,26 +145,18 @@ fn mcast_v4_readfrom(bindaddr:  SocketAddrV4,
     socket.bind(&addr)?;
 
     socket.join_multicast_v4(&mcastgrp, &interface)?;
-    binary_read_loop(&socket)?;
+    binary_read_loop(&socket, printsrc)?;
     Ok(())
 }
 
-
-
-fn read_loop_with_srcaddr(socket: &Socket) -> io::Result<()> {
-    let mut rcv_buf: [u8; 65536] = [0; 65536];
-    loop {
-        let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
-        let s = str::from_utf8(&rcv_buf[0..byte_count]).unwrap();
-        println!("from /{}  {}", sender.as_inet().unwrap(), s);
-    }
-}
-
-fn binary_read_loop(socket: &Socket) -> io::Result<()> {
+fn binary_read_loop(socket: &Socket, printsrc: bool) -> io::Result<()> {
     let mut rcv_buf: [u8; 65536] = [0; 65536];
     let mut stdout = std::io::stdout();
     loop {
-        let (byte_count, _sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
+        let (byte_count, sender) = socket.recv_from(&mut rcv_buf[..]).unwrap();
+        if printsrc {
+            writeln!(stdout, "from /{}", sender.as_inet().unwrap())?;
+        }
         stdout.write_all(&rcv_buf[0..byte_count])?;
         stdout.flush()?;
     }
