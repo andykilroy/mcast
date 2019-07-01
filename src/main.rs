@@ -168,7 +168,7 @@ fn read_loop(socket: &Socket, printsrc: bool, base64enc: bool) -> io::Result<()>
             writeln!(stdout, "### from /{}", sender.as_inet().unwrap())?;
         }
         if base64enc {
-            write_base64(&mut stdout, &rcv_buf[0..byte_count]);
+            write_base64(&mut stdout, &rcv_buf[0..byte_count])?;
         } else {
             stdout.write_all(&rcv_buf[0..byte_count])?;
         }
