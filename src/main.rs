@@ -18,7 +18,7 @@ fn main() {
     };
 }
 
-fn start_app() -> std::result::Result<(), String> {
+fn start_app() -> Result<(), String> {
     let matches = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("A tool for testing multicast UDP")
