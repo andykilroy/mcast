@@ -1,10 +1,15 @@
 # MCast
 
-A small diagnostic tool to help determine whether multicast UDP is
-functioning.  
+A command line tool to listen for or send multicast UDP datagrams.  
 
-For example, to listen on a multicast address 231.0.3.1 port 4001, 
-on the network interface identified by 192.168.1.177:
+This was originally motivated by an occasion where people believed
+multicast was enabled on the network but was actually misconfigured.
+The tool acts as a means for a user to send test datagrams while a
+network admin is performing a packet capture, possibly on a different
+host/device to where the mcast tool is being invoked.  
+
+To listen on a multicast address 231.0.3.1 port 4001, on the network
+interface identified by 192.168.1.177:
 
 ```
 $ mcast listen 231.0.3.1 4001 192.168.1.177
@@ -22,7 +27,7 @@ END
 ```
 
 If working, the listen commands entered previously should print the exact 
-data that was entered in the send command
+data that was entered in the send
 
 ```
 Lorem ipsum etc, etc
