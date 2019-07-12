@@ -110,9 +110,9 @@ fn handle_listen(
 }
 
 fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), String> {
-    let port = u16::from_str(port_str).map_err(|e| format!("could not parse port number {}, {}", port_str, e))?;
-    let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("could not parse group address {}, {}", grp_str, e))?;
-    let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("could not parse nic address {}, {}", nic_str, e))?;
+    let port = u16::from_str(port_str).map_err(|e| format!("Could not parse port number {}, {}", port_str, e))?;
+    let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
+    let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
     mcast_v4_sendto(nic, SocketAddrV4::new(grp, port)).map_err(|e| format!("{}", e))
 }
 

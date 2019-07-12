@@ -1,11 +1,15 @@
 [package]
 name = "mcast"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Andrew Kilroy <7545475+andykilroy@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
-clap = "2.33.0"
+clap = "2.33"
 socket2 = { version = "0.3.9", features = ["reuseport"] }
-base64 = "0.10.1"
+base64 = "0.10"
+
+[dev-dependencies]
+assert_cmd = "0.11"
+predicates = "1"
 
