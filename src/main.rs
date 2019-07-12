@@ -90,7 +90,7 @@ fn start_app() -> Result<(), String> {
             &subm.value_of("PORT").expect("a port number was expected"),
             &subm.value_of("NIC_IP").expect("a nic was expected"),
         ),
-        (_, _) => Err("unsupported command, try --help option".to_string()),
+        (cmd, _) => Err(format!("Unsupported command '{}'", cmd)),
     }
 }
 

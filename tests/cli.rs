@@ -110,3 +110,12 @@ fn listen_to_malformed_ipv4_interface() -> Result<(), Box<std::error::Error>> {
         .stderr(predicate::str::contains("Could not parse nic address"));
     Ok(())
 }
+
+#[test]
+fn unrecognised_command() -> Result<(), Box<std::error::Error>> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("nonexistentcmd");
+    cmd.assert()
+        .failure();
+    Ok(())
+}
