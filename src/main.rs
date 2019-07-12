@@ -102,9 +102,9 @@ fn handle_listen(
     base64enc: bool
 ) -> Result<(), String> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
-    let port = u16::from_str(port_str).map_err(|e| format!("could not parse port number {}, {}", port_str, e))?;
-    let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("could not parse group address {}, {}", grp_str, e))?;
-    let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("could not parse nic address {}, {}", nic_str, e))?;
+    let port = u16::from_str(port_str).map_err(|e| format!("Could not parse port number {}, {}", port_str, e))?;
+    let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
+    let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
     mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc, base64enc).map_err(|e| format!("{}", e))
 }
