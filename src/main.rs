@@ -71,9 +71,9 @@ fn main() -> Result<(), ExitFailure> {
 
 fn handle_listen(args: ListenArgs) -> Result<(), Error> {
     let nic = Ipv4Addr::from_str(&args.nic)
-        .with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
+        .with_context(|_c| format!("could not parse nic address {}", args.nic))?;
     let port = u16::from_str(&args.port)
-        .with_context(|_c| format!("Could not parse port number {}", args.port))?;
+        .with_context(|_c| format!("could not parse port number {}", args.port))?;
     let grps_as_strings: Vec<String> = {
         let mut items = vec![args.group_ip.clone()];
         items.extend(args.additional_grp_ips);
@@ -83,7 +83,7 @@ fn handle_listen(args: ListenArgs) -> Result<(), Error> {
     let bind_sock_addr = SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), port);
 
     let socket = create_server_socket(bind_sock_addr, &grps, nic)
-        .with_context(|_c| format!("Could not create socket"))?;
+        .with_context(|_c| format!("could not create socket"))?;
     read_loop(&socket, args.print_src_addr, args.base64_enc)?;
 
     Ok(())
@@ -93,7 +93,7 @@ fn parse_ipv4_groups(groups_str: &[String]) -> Result<Vec<Ipv4Addr>, Error> {
     let mut grps: Vec<Ipv4Addr> = vec![];
     for addr in groups_str.iter() {
         let grp = Ipv4Addr::from_str(&addr)
-            .with_context(|_c| format!("Could not parse group address {}", addr))?;
+            .with_context(|_c| format!("could not parse group address {}", addr))?;
         grps.push(grp);
     }
     Ok(grps)
@@ -115,18 +115,18 @@ fn create_server_socket(
     for grp in groups {
         socket
             .join_multicast_v4(grp, &interface)
-            .with_context(|_c| format!("could not use interface {}", interface))?;
+            .with_context(|_c| format!("could not join {} on interface {}", grp, interface))?;
     }
     Ok(socket)
 }
 
 fn handle_send(args: SendArgs) -> Result<(), Error> {
     let port = u16::from_str(&args.port)
-        .with_context(|_c| format!("Could not parse port number {}", args.port))?;
+        .with_context(|_c| format!("could not parse port number {}", args.port))?;
     let grp = Ipv4Addr::from_str(&args.group_ip)
-        .with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
+        .with_context(|_c| format!("could not parse group address {}", args.group_ip))?;
     let nic = Ipv4Addr::from_str(&args.nic)
-        .with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
+        .with_context(|_c| format!("could not parse nic address {}", args.nic))?;
     mcast_v4_sendto(nic, SocketAddrV4::new(grp, port))?;
     Ok(())
 }
