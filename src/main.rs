@@ -1,15 +1,21 @@
 extern crate socket2;
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+
 use std::io;
 use std::net::Ipv4Addr;
 use std::net::SocketAddrV4;
 use std::process;
 use std::str;
 use std::str::FromStr;
+use std::io::{Read, Write, Stdout};
 
 use clap::{App, Arg, SubCommand};
-use std::io::{Read, Write, Stdout};
+
+use failure::ResultExt;
+use failure::Error;
+use exitfailure::ExitFailure;
+
 
 fn main() {
     if let Err(e) = start_app() {
@@ -18,7 +24,7 @@ fn main() {
     };
 }
 
-fn start_app() -> Result<(), String> {
+fn start_app() -> Result<(), Error> {
     let matches = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("A tool for testing multicast UDP")
@@ -90,7 +96,7 @@ fn start_app() -> Result<(), String> {
             &subm.value_of("PORT").expect("a port number was expected"),
             &subm.value_of("NIC_IP").expect("a nic was expected"),
         ),
-        (cmd, _) => Err(format!("Unsupported command '{}'", cmd)),
+        (_, _) => Ok(()),
     }
 }
 
@@ -100,20 +106,22 @@ fn handle_listen(
     nic_str: &str,
     printsrc: bool,
     base64enc: bool
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
-    let port = u16::from_str(port_str).map_err(|e| format!("Could not parse port number {}, {}", port_str, e))?;
-    let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
-    let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
+    let port = u16::from_str(port_str).with_context(|e| format!("Could not parse port number {}, {}", port_str, e))?;
+    let grp = Ipv4Addr::from_str(grp_str).with_context(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
+    let nic = Ipv4Addr::from_str(nic_str).with_context(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
-    mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc, base64enc).map_err(|e| format!("{}", e))
+    mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc, base64enc)?;
+    Ok(())
 }
 
-fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), String> {
-    let port = u16::from_str(port_str).map_err(|e| format!("Could not parse port number {}, {}", port_str, e))?;
-    let grp = Ipv4Addr::from_str(grp_str).map_err(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
-    let nic = Ipv4Addr::from_str(nic_str).map_err(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
-    mcast_v4_sendto(nic, SocketAddrV4::new(grp, port)).map_err(|e| format!("{}", e))
+fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), Error> {
+    let port = u16::from_str(port_str).with_context(|e| format!("Could not parse port number {}, {}", port_str, e))?;
+    let grp = Ipv4Addr::from_str(grp_str).with_context(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
+    let nic = Ipv4Addr::from_str(nic_str).with_context(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
+    mcast_v4_sendto(nic, SocketAddrV4::new(grp, port))?;
+    Ok(())
 }
 
 fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
@@ -135,10 +143,8 @@ fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
 }
 
 fn send_all_bytes(bytes: &[u8], sock: &Socket, dest: &SockAddr) -> io::Result<()> {
-    match sock.send_to(bytes, dest) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
-    }
+    sock.send_to(bytes, dest)?;
+    Ok(())
 }
 
 fn mcast_v4_readfrom(
