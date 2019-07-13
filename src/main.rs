@@ -22,12 +22,13 @@ use structopt::StructOpt;
 #[structopt(about = "A tool for testing multicast UDP", rename_all = "kebab-case")]
 enum CommandArgs {
     #[structopt(name = "listen")]
-    /// Listen on a particular network interface for datagrams from
-    /// one or more multicast groups
+    /// Listen on a particular network interface for datagrams
+    /// from one or more multicast groups
     ListenV4(ListenV4Args),
 
     #[structopt(name = "send")]
-    /// Send datagrams to a multicast group via a particular network interface
+    /// Send datagrams to a multicast group via a particular
+    /// network interface
     SendV4(SendV4Args),
 }
 
@@ -55,7 +56,8 @@ struct ListenV4Args {
 #[structopt(rename_all = "kebab-case")]
 struct SendV4Args {
     #[structopt(long, default_value = "1")]
-    /// Instructs routers to discard the datagram if it traverses more than this number of hops
+    /// Instructs routers to discard the datagram if it traverses
+    /// more than this number of hops
     hops: u32,
     /// The network interface on which to send the datagrams
     nic: Ipv4Addr,
