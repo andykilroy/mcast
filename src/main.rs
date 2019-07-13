@@ -32,13 +32,13 @@ enum CommandArgs {
 
 #[derive(Debug, StructOpt)]
 struct ListenArgs {
-    #[structopt(name = "group", long)]
-    /// Multicast groups to join
-    group_ips: Vec<String>,
-    /// The port to bind on
-    port: String,
     /// The network interface on which to send the join requests
     nic: String,
+    /// The port to bind on
+    port: String,
+    /// Multicast groups to join
+    group_ips: Vec<String>,
+
     #[structopt(name = "printsrc", long)]
     /// Print where the datagram came from
     print_src_addr: bool,
@@ -49,12 +49,12 @@ struct ListenArgs {
 
 #[derive(Debug, StructOpt)]
 struct SendArgs {
-    /// The multicast group to send to
-    group_ip: String,
-    /// The destination port to send to
-    port: String,
     /// The network interface on which to send the datagrams
     nic: String,
+    /// The destination port to send to
+    port: String,
+    /// The multicast group to send to
+    group_ip: String,
 }
 
 fn main() -> Result<(), ExitFailure> {

@@ -12,7 +12,7 @@ To listen on a multicast address 231.0.3.1 port 4001, on the network
 interface identified by 192.168.1.177:
 
 ```
-$ mcast listen 231.0.3.1 4001 192.168.1.177
+$ mcast listen 192.168.1.177 4001 231.0.3.1
 ``` 
 
 (Fire up several instances of the command in multiple terminals if you wish)
@@ -20,7 +20,7 @@ $ mcast listen 231.0.3.1 4001 192.168.1.177
 Try to send data to the multicast group by running:
 
 ```
-$ mcast send 231.0.3.1 4001 192.168.1.177 << END
+$ mcast send 192.168.1.177 4001 231.0.3.1 << END
 Lorem ipsum etc, etc
 So on and so forth
 END

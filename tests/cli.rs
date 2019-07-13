@@ -5,7 +5,7 @@ use std::process::Command;
 #[test]
 fn send_not_enough_args() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
-    cmd.arg("send").arg("bad.ip.address");
+    cmd.arg("send").arg("192.168.1.32");
     cmd.assert().failure().stderr(predicate::str::contains(
         "The following required arguments were not provided",
     ));
@@ -16,9 +16,10 @@ fn send_not_enough_args() -> Result<(), Box<std::error::Error>> {
 fn send_to_malformed_ipv4_group() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg("send")
-        .arg("bad.ip.address")
+        .arg("192.168.3.32")
         .arg("4001")
-        .arg("192.168.3.32");
+        .arg("bad.ip.address")
+    ;
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Could not parse group address"));
@@ -29,9 +30,10 @@ fn send_to_malformed_ipv4_group() -> Result<(), Box<std::error::Error>> {
 fn send_to_out_of_range_port() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg("send")
-        .arg("231.0.3.1")
+        .arg("192.168.3.32")
         .arg("65537")
-        .arg("192.168.3.32");
+        .arg("231.0.3.1")
+    ;
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Could not parse port number"));
@@ -42,9 +44,10 @@ fn send_to_out_of_range_port() -> Result<(), Box<std::error::Error>> {
 fn send_to_malformed_ipv4_interface() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg("send")
-        .arg("231.0.3.1")
+        .arg("192324.168.3.32")
         .arg("4001")
-        .arg("192324.168.3.32");
+        .arg("231.0.3.1")
+    ;
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Could not parse nic address"));
@@ -54,7 +57,7 @@ fn send_to_malformed_ipv4_interface() -> Result<(), Box<std::error::Error>> {
 #[test]
 fn listen_not_enough_args() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
-    cmd.arg("listen").arg("bad.ip.address");
+    cmd.arg("listen").arg("192.168.3.32");
     cmd.assert().failure().stderr(predicate::str::contains(
         "The following required arguments were not provided",
     ));
@@ -65,9 +68,10 @@ fn listen_not_enough_args() -> Result<(), Box<std::error::Error>> {
 fn listen_to_malformed_ipv4_group() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg("listen")
-        .arg("bad.ip.address")
+        .arg("192.168.3.32")
         .arg("4001")
-        .arg("192.168.3.32");
+        .arg("bad.ip.address")
+    ;
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Could not parse group address"));
@@ -78,9 +82,10 @@ fn listen_to_malformed_ipv4_group() -> Result<(), Box<std::error::Error>> {
 fn listen_to_out_of_range_port() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg("listen")
-        .arg("231.0.3.1")
+        .arg("192.168.3.32")
         .arg("65537")
-        .arg("192.168.3.32");
+        .arg("231.0.3.1")
+    ;
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Could not parse port number"));
@@ -91,9 +96,10 @@ fn listen_to_out_of_range_port() -> Result<(), Box<std::error::Error>> {
 fn listen_to_malformed_ipv4_interface() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg("listen")
-        .arg("231.0.3.1")
+        .arg("192324.168.3.32")
         .arg("4001")
-        .arg("192324.168.3.32");
+        .arg("231.0.3.1")
+    ;
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Could not parse nic address"));
