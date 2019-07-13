@@ -22,7 +22,7 @@ fn send_to_malformed_ipv4_group() -> Result<(), Box<std::error::Error>> {
     ;
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("could not parse group address"));
+        .stderr(predicate::str::contains("Invalid value for '<group-ip>'"));
     Ok(())
 }
 
@@ -36,7 +36,7 @@ fn send_to_out_of_range_port() -> Result<(), Box<std::error::Error>> {
     ;
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("could not parse port number"));
+        .stderr(predicate::str::contains("Invalid value for '<port>'"));
     Ok(())
 }
 
@@ -50,7 +50,7 @@ fn send_to_malformed_ipv4_interface() -> Result<(), Box<std::error::Error>> {
     ;
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("could not parse nic address"));
+        .stderr(predicate::str::contains("Invalid value for '<nic>'"));
     Ok(())
 }
 
@@ -85,7 +85,7 @@ fn listen_to_malformed_ipv4_group() -> Result<(), Box<std::error::Error>> {
     ;
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("could not parse group address"));
+        .stderr(predicate::str::contains("Invalid value for '<group-ip>'"));
     Ok(())
 }
 
@@ -99,7 +99,7 @@ fn listen_to_out_of_range_port() -> Result<(), Box<std::error::Error>> {
     ;
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("could not parse port number"));
+        .stderr(predicate::str::contains("Invalid value for '<port>'"));
     Ok(())
 }
 
@@ -113,7 +113,7 @@ fn listen_to_malformed_ipv4_interface() -> Result<(), Box<std::error::Error>> {
     ;
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("could not parse nic address"));
+        .stderr(predicate::str::contains("Invalid value for '<nic>'"));
     Ok(())
 }
 

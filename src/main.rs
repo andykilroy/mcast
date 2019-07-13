@@ -24,24 +24,24 @@ enum CommandArgs {
     #[structopt(name = "listen")]
     /// Listen on a particular network interface for datagrams from
     /// one or more multicast groups
-    Listen(ListenArgs),
+    ListenV4(ListenV4Args),
 
     #[structopt(name = "send")]
     /// Send datagrams to a multicast group via a particular network interface
-    Send(SendArgs),
+    SendV4(SendV4Args),
 }
 
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
-struct ListenArgs {
+struct ListenV4Args {
     /// The network interface on which to send the join requests
-    nic: String,
+    nic: Ipv4Addr,
     /// The port to bind on
-    port: String,
+    port: u16,
     /// A multicast group to join
-    group_ip: String,
+    group_ip: Ipv4Addr,
     /// Additional multicast groups to join
-    additional_grp_ips: Vec<String>,
+    additional_grp_ips: Vec<Ipv4Addr>,
 
     #[structopt(name = "printsrc", long)]
     /// Print the incoming datagram's source address
@@ -53,42 +53,30 @@ struct ListenArgs {
 
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
-struct SendArgs {
+struct SendV4Args {
     #[structopt(long, default_value = "1")]
     /// Instructs routers to discard the datagram if it traverses more than this number of hops
     hops: u32,
     /// The network interface on which to send the datagrams
-    nic: String,
+    nic: Ipv4Addr,
     /// The destination port to send to
-    port: String,
+    port: u16,
     /// The multicast group to send to
-    group_ip: String,
+    group_ip: Ipv4Addr,
 }
 
 fn main() -> Result<(), ExitFailure> {
     let args = CommandArgs::from_args();
 
     match args {
-        CommandArgs::Listen(l) => handle_listen(l),
-        CommandArgs::Send(s) => handle_send(s),
+        CommandArgs::ListenV4(l) => handle_listen(l),
+        CommandArgs::SendV4(s) => handle_send(s),
     }?;
     Ok(())
 }
 
-fn handle_listen(args: ListenArgs) -> Result<(), Error> {
-    let nic = Ipv4Addr::from_str(&args.nic)
-        .with_context(|_c| format!("could not parse nic address {}", args.nic))?;
-    let port = u16::from_str(&args.port)
-        .with_context(|_c| format!("could not parse port number {}", args.port))?;
-    let grps_as_strings: Vec<String> = {
-        let mut items = vec![args.group_ip.clone()];
-        items.extend(args.additional_grp_ips);
-        items
-    };
-    let grps = parse_ipv4_groups(&grps_as_strings)?;
-    let bind_sock_addr = SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), port);
-
-    let socket = create_server_socket(bind_sock_addr, &grps, nic)
+fn handle_listen(args: ListenV4Args) -> Result<(), Error> {
+    let socket = ipv4_server_socket(&args)
         .with_context(|_c| format!("could not create socket"))?;
     read_loop(&socket, args.print_src_addr, args.base64_enc)?;
 
@@ -105,35 +93,32 @@ fn parse_ipv4_groups(groups_str: &[String]) -> Result<Vec<Ipv4Addr>, Error> {
     Ok(grps)
 }
 
-fn create_server_socket(
-    bindaddr: SocketAddrV4,
-    groups: &[Ipv4Addr],
-    interface: Ipv4Addr,
-) -> Result<Socket, Error> {
-
+fn ipv4_server_socket(args: &ListenV4Args) -> Result<Socket, Error> {
+    let bindaddr = SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), args.port);
     let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let addr = SockAddr::from(bindaddr);
+
     socket.set_reuse_address(true)?;
     socket.set_reuse_port(true)?;
     socket
         .bind(&addr)
         .with_context(|_c| format!("could not bind on {}", bindaddr))?;
+
+    let groups: Vec<Ipv4Addr> = {
+        let mut items = vec![args.group_ip];
+        items.extend(args.additional_grp_ips.clone());
+        items
+    };
     for grp in groups {
         socket
-            .join_multicast_v4(grp, &interface)
-            .with_context(|_c| format!("could not join {} on interface {}", grp, interface))?;
+            .join_multicast_v4(&grp, &args.nic)
+            .with_context(|_c| format!("could not join {} on interface {}", grp, args.nic))?;
     }
     Ok(socket)
 }
 
-fn handle_send(args: SendArgs) -> Result<(), Error> {
-    let port = u16::from_str(&args.port)
-        .with_context(|_c| format!("could not parse port number {}", args.port))?;
-    let grp = Ipv4Addr::from_str(&args.group_ip)
-        .with_context(|_c| format!("could not parse group address {}", args.group_ip))?;
-    let nic = Ipv4Addr::from_str(&args.nic)
-        .with_context(|_c| format!("could not parse nic address {}", args.nic))?;
-    mcast_v4_sendto(nic, SocketAddrV4::new(grp, port), args.hops)?;
+fn handle_send(args: SendV4Args) -> Result<(), Error> {
+    mcast_v4_sendto(args.nic, SocketAddrV4::new(args.group_ip, args.port), args.hops)?;
     Ok(())
 }
 
