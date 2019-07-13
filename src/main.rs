@@ -16,7 +16,24 @@ use failure::ResultExt;
 use failure::Error;
 use exitfailure::ExitFailure;
 
+use structopt::StructOpt;
 
+#[derive(StructOpt)]
+#[structopt(about = "A tool for testing multicast UDP")]
+enum CommandArgs {
+    Listen {
+        group_ip: String,
+        port: u16,
+        nic: String,
+        print_src_addr: bool,
+        base64_enc: bool,
+    },
+    Send {
+        group_ip: String,
+        port: u16,
+        nic: String,
+    }
+}
 
 fn main() -> Result<(), ExitFailure> {
     let matches = App::new(env!("CARGO_PKG_NAME"))

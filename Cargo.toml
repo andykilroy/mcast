@@ -10,6 +10,7 @@ socket2 = { version = "0.3.9", features = ["reuseport"] }
 base64 = "0.10"
 failure = "0.1"
 exitfailure = "0.5"
+structopt = "0.2"
 
 [dev-dependencies]
 assert_cmd = "0.11"
