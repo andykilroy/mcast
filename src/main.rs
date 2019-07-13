@@ -69,8 +69,21 @@ fn handle_listen(args: ListenArgs) -> Result<(), Error> {
     let grp = Ipv4Addr::from_str(&args.group_ip).with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
     let nic = Ipv4Addr::from_str(&args.nic).with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
-    mcast_v4_readfrom(bind_sock_addr, grp, nic, args.print_src_addr, args.base64_enc)?;
+
+    let socket = create_server_socket(bind_sock_addr, grp, nic).with_context(|_c| format!("Could not create socket"))?;
+    read_loop(&socket, args.print_src_addr, args.base64_enc)?;
+
     Ok(())
+}
+
+fn create_server_socket(bindaddr: SocketAddrV4, mcastgrp: Ipv4Addr, interface: Ipv4Addr) -> Result<Socket, Error> {
+    let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
+    let addr = SockAddr::from(bindaddr);
+    socket.set_reuse_address(true)?;
+    socket.set_reuse_port(true)?;
+    socket.bind(&addr).with_context(|_c| format!("could not bind on {}", bindaddr))?;
+    socket.join_multicast_v4(&mcastgrp, &interface).with_context(|_c| format!("could not use interface {}", interface))?;
+    Ok(socket)
 }
 
 fn handle_send(args: SendArgs) -> Result<(), Error> {
@@ -101,24 +114,6 @@ fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
 
 fn send_all_bytes(bytes: &[u8], sock: &Socket, dest: &SockAddr) -> io::Result<()> {
     sock.send_to(bytes, dest)?;
-    Ok(())
-}
-
-fn mcast_v4_readfrom(
-    bindaddr: SocketAddrV4,
-    mcastgrp: Ipv4Addr,
-    interface: Ipv4Addr,
-    printsrc: bool,
-    base64enc: bool,
-) -> io::Result<()> {
-    let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
-    let addr = SockAddr::from(bindaddr);
-    socket.set_reuse_address(true)?;
-    socket.set_reuse_port(true)?;
-    socket.bind(&addr)?;
-
-    socket.join_multicast_v4(&mcastgrp, &interface)?;
-    read_loop(&socket, printsrc, base64enc)?;
     Ok(())
 }
 
