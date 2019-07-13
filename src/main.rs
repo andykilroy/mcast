@@ -17,14 +17,8 @@ use failure::Error;
 use exitfailure::ExitFailure;
 
 
-fn main() {
-    if let Err(e) = start_app() {
-        eprintln!("{}", e);
-        process::exit(1);
-    };
-}
 
-fn start_app() -> Result<(), Error> {
+fn main() -> Result<(), ExitFailure> {
     let matches = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("A tool for testing multicast UDP")
@@ -97,7 +91,8 @@ fn start_app() -> Result<(), Error> {
             &subm.value_of("NIC_IP").expect("a nic was expected"),
         ),
         (_, _) => Ok(()),
-    }
+    }?;
+    Ok(())
 }
 
 fn handle_listen(
@@ -108,18 +103,18 @@ fn handle_listen(
     base64enc: bool
 ) -> Result<(), Error> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
-    let port = u16::from_str(port_str).with_context(|e| format!("Could not parse port number {}, {}", port_str, e))?;
-    let grp = Ipv4Addr::from_str(grp_str).with_context(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
-    let nic = Ipv4Addr::from_str(nic_str).with_context(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
+    let port = u16::from_str(port_str).with_context(|_c| format!("Could not parse port number {}", port_str))?;
+    let grp = Ipv4Addr::from_str(grp_str).with_context(|_c| format!("Could not parse group address {}", grp_str))?;
+    let nic = Ipv4Addr::from_str(nic_str).with_context(|_c| format!("Could not parse nic address {}", nic_str))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
     mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc, base64enc)?;
     Ok(())
 }
 
 fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), Error> {
-    let port = u16::from_str(port_str).with_context(|e| format!("Could not parse port number {}, {}", port_str, e))?;
-    let grp = Ipv4Addr::from_str(grp_str).with_context(|e| format!("Could not parse group address {}, {}", grp_str, e))?;
-    let nic = Ipv4Addr::from_str(nic_str).with_context(|e| format!("Could not parse nic address {}, {}", nic_str, e))?;
+    let port = u16::from_str(port_str).with_context(|_c| format!("Could not parse port number {}", port_str))?;
+    let grp = Ipv4Addr::from_str(grp_str).with_context(|_c| format!("Could not parse group address {}", grp_str))?;
+    let nic = Ipv4Addr::from_str(nic_str).with_context(|_c| format!("Could not parse nic address {}", nic_str))?;
     mcast_v4_sendto(nic, SocketAddrV4::new(grp, port))?;
     Ok(())
 }
