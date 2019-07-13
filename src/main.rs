@@ -51,78 +51,20 @@ enum CommandArgs {
 
 fn main() -> Result<(), ExitFailure> {
     let args = CommandArgs::from_args();
-    let matches = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .about("A tool for testing multicast UDP")
-        .subcommand(
-            SubCommand::with_name("listen")
-                .about(
-                    "Listen on a particular network interface for datagrams from a multicast group",
-                )
-                .arg(
-                    Arg::with_name("GROUP_IP")
-                        .help("The multicast group to join")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("PORT")
-                        .help("The port to bind on")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("NIC_IP")
-                        .help("The network interface on which to send the join requests")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("PRINT_SRCADDR")
-                        .long("printsrc")
-                        .help("Print where the datagram came from")
-                        .required(false),
-                )
-                .arg(
-                    Arg::with_name("BASE64ENC")
-                        .long("base64")
-                        .help("Encode incoming datagrams in base64")
-                        .required(false),
-                )
-            ,
-        )
-        .subcommand(
-            SubCommand::with_name("send")
-                .about("Send datagrams to a multicast group via a particular network interface")
-                .arg(
-                    Arg::with_name("GROUP_IP")
-                        .help("The multicast group to send to")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("PORT")
-                        .help("The destination port to send to")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("NIC_IP")
-                        .help("The network interface on which to send the datagrams")
-                        .required(true),
-                ),
-        )
-        .get_matches();
 
-    match matches.subcommand() {
-        ("listen", Some(subm)) => handle_listen(
-            &subm.value_of("GROUP_IP").expect("a multicast group was expected"),
-            &subm.value_of("PORT").expect("a port number was expected"),
-            &subm.value_of("NIC_IP").expect("a nic was expected"),
-            subm.is_present("PRINT_SRCADDR"),
-            subm.is_present("BASE64ENC"),
-        ),
-        ("send", Some(subm)) => handle_send(
-            &subm.value_of("GROUP_IP").expect("a multicast group was expected"),
-            &subm.value_of("PORT").expect("a port number was expected"),
-            &subm.value_of("NIC_IP").expect("a nic was expected"),
-        ),
-        (_, _) => Ok(()),
+    match args {
+        CommandArgs::Listen {
+            group_ip: g,
+            port: p,
+            nic: n,
+            print_src_addr: ps,
+            base64_enc: b
+        } => handle_listen(&g, &p, &n, ps, b),
+        CommandArgs::Send {
+            group_ip: g,
+            port: p,
+            nic: n,
+        } => handle_send(&g, &p, &n),
     }?;
     Ok(())
 }
