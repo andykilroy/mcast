@@ -10,6 +10,9 @@ use std::str;
 use std::str::FromStr;
 
 use exitfailure::ExitFailure;
+
+#[macro_use]
+extern crate failure;
 use failure::Error;
 use failure::ResultExt;
 
@@ -29,8 +32,9 @@ enum CommandArgs {
 
 #[derive(Debug, StructOpt)]
 struct ListenArgs {
-    /// The multicast group to join
-    group_ip: String,
+    #[structopt(name = "group", long)]
+    /// Multicast groups to join
+    group_ips: Vec<String>,
     /// The port to bind on
     port: String,
     /// The network interface on which to send the join requests
@@ -67,22 +71,35 @@ fn handle_listen(args: ListenArgs) -> Result<(), Error> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
     let port = u16::from_str(&args.port)
         .with_context(|_c| format!("Could not parse port number {}", args.port))?;
-    let grp = Ipv4Addr::from_str(&args.group_ip)
-        .with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
     let nic = Ipv4Addr::from_str(&args.nic)
         .with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
 
-    let socket = create_server_socket(bind_sock_addr, grp, nic)
+    let grps = parse_ipv4_groups(&args.group_ips)?;
+
+    let socket = create_server_socket(bind_sock_addr, &grps, nic)
         .with_context(|_c| format!("Could not create socket"))?;
     read_loop(&socket, args.print_src_addr, args.base64_enc)?;
 
     Ok(())
 }
 
+fn parse_ipv4_groups(groups_str: &[String]) -> Result<Vec<Ipv4Addr>, Error> {
+    let mut grps: Vec<Ipv4Addr> = vec![];
+    for addr in groups_str.iter() {
+        let grp = Ipv4Addr::from_str(&addr)
+            .with_context(|_c| format!("Could not parse group address {}", addr))?;
+        grps.push(grp);
+    }
+//    if grps.len() == 0 {
+//        return Err(format_err!("Expected at least one group address"));
+//    }
+    Ok(grps)
+}
+
 fn create_server_socket(
     bindaddr: SocketAddrV4,
-    mcastgrp: Ipv4Addr,
+    groups: &[Ipv4Addr],
     interface: Ipv4Addr,
 ) -> Result<Socket, Error> {
 
@@ -93,9 +110,11 @@ fn create_server_socket(
     socket
         .bind(&addr)
         .with_context(|_c| format!("could not bind on {}", bindaddr))?;
-    socket
-        .join_multicast_v4(&mcastgrp, &interface)
-        .with_context(|_c| format!("could not use interface {}", interface))?;
+    for grp in groups {
+        socket
+            .join_multicast_v4(grp, &interface)
+            .with_context(|_c| format!("could not use interface {}", interface))?;
+    }
     Ok(socket)
 }
 
