@@ -22,7 +22,8 @@ use structopt::StructOpt;
 #[structopt(about = "A tool for testing multicast UDP", rename_all = "kebab-case")]
 enum CommandArgs {
     #[structopt(name = "listen")]
-    /// Listen on a particular network interface for datagrams from one or more multicast groups
+    /// Listen on a particular network interface for datagrams from
+    /// one or more multicast groups
     Listen(ListenArgs),
 
     #[structopt(name = "send")]
@@ -31,6 +32,7 @@ enum CommandArgs {
 }
 
 #[derive(Debug, StructOpt)]
+#[structopt(rename_all = "kebab-case")]
 struct ListenArgs {
     /// The network interface on which to send the join requests
     nic: String,
@@ -50,7 +52,11 @@ struct ListenArgs {
 }
 
 #[derive(Debug, StructOpt)]
+#[structopt(rename_all = "kebab-case")]
 struct SendArgs {
+    #[structopt(long, default_value = "1")]
+    /// Instructs routers to discard the datagram if it traverses more than this number of hops
+    hops: u32,
     /// The network interface on which to send the datagrams
     nic: String,
     /// The destination port to send to
@@ -127,15 +133,15 @@ fn handle_send(args: SendArgs) -> Result<(), Error> {
         .with_context(|_c| format!("could not parse group address {}", args.group_ip))?;
     let nic = Ipv4Addr::from_str(&args.nic)
         .with_context(|_c| format!("could not parse nic address {}", args.nic))?;
-    mcast_v4_sendto(nic, SocketAddrV4::new(grp, port))?;
+    mcast_v4_sendto(nic, SocketAddrV4::new(grp, port), args.hops)?;
     Ok(())
 }
 
-fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4) -> io::Result<()> {
+fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4, hop_count: u32) -> io::Result<()> {
     let snd_sock = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let bindaddr = SockAddr::from(SocketAddrV4::new(nic, 0));
     let dest = SockAddr::from(group);
-    snd_sock.set_multicast_ttl_v4(1)?;
+    snd_sock.set_multicast_ttl_v4(hop_count)?;
     snd_sock.bind(&bindaddr)?;
     let mut istream = std::io::stdin();
 
