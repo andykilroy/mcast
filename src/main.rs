@@ -5,12 +5,9 @@ use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use std::io;
 use std::net::Ipv4Addr;
 use std::net::SocketAddrV4;
-use std::process;
 use std::str;
 use std::str::FromStr;
 use std::io::{Read, Write, Stdout};
-
-use clap::{App, Arg, SubCommand};
 
 use failure::ResultExt;
 use failure::Error;
@@ -23,72 +20,63 @@ use structopt::StructOpt;
 enum CommandArgs {
     #[structopt(name = "listen")]
     /// Listen on a particular network interface for datagrams from a multicast group
-    Listen {
-        /// The multicast group to join
-        group_ip: String,
-        /// The port to bind on
-        port: String,
-        /// The network interface on which to send the join requests
-        nic: String,
-        #[structopt(name = "printsrc", long)]
-        /// Print where the datagram came from
-        print_src_addr: bool,
-        #[structopt(name = "base64", long)]
-        /// Encode incoming datagrams in base64
-        base64_enc: bool,
-    },
+    Listen(ListenArgs),
+
     #[structopt(name = "send")]
     /// Send datagrams to a multicast group via a particular network interface
-    Send {
-        /// The multicast group to send to
-        group_ip: String,
-        /// The destination port to send to
-        port: String,
-        /// The network interface on which to send the datagrams
-        nic: String,
-    }
+    Send(SendArgs),
+}
+
+#[derive(Debug, StructOpt)]
+struct ListenArgs {
+    /// The multicast group to join
+    group_ip: String,
+    /// The port to bind on
+    port: String,
+    /// The network interface on which to send the join requests
+    nic: String,
+    #[structopt(name = "printsrc", long)]
+    /// Print where the datagram came from
+    print_src_addr: bool,
+    #[structopt(name = "base64", long)]
+    /// Encode incoming datagrams in base64
+    base64_enc: bool,
+}
+
+#[derive(Debug, StructOpt)]
+struct SendArgs {
+    /// The multicast group to send to
+    group_ip: String,
+    /// The destination port to send to
+    port: String,
+    /// The network interface on which to send the datagrams
+    nic: String,
 }
 
 fn main() -> Result<(), ExitFailure> {
     let args = CommandArgs::from_args();
 
     match args {
-        CommandArgs::Listen {
-            group_ip: g,
-            port: p,
-            nic: n,
-            print_src_addr: ps,
-            base64_enc: b
-        } => handle_listen(&g, &p, &n, ps, b),
-        CommandArgs::Send {
-            group_ip: g,
-            port: p,
-            nic: n,
-        } => handle_send(&g, &p, &n),
+        CommandArgs::Listen(l) => handle_listen(l),
+        CommandArgs::Send(s) => handle_send(s),
     }?;
     Ok(())
 }
 
-fn handle_listen(
-    grp_str: &str,
-    port_str: &str,
-    nic_str: &str,
-    printsrc: bool,
-    base64enc: bool
-) -> Result<(), Error> {
+fn handle_listen(args: ListenArgs) -> Result<(), Error> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
-    let port = u16::from_str(port_str).with_context(|_c| format!("Could not parse port number {}", port_str))?;
-    let grp = Ipv4Addr::from_str(grp_str).with_context(|_c| format!("Could not parse group address {}", grp_str))?;
-    let nic = Ipv4Addr::from_str(nic_str).with_context(|_c| format!("Could not parse nic address {}", nic_str))?;
+    let port = u16::from_str(&args.port).with_context(|_c| format!("Could not parse port number {}", args.port))?;
+    let grp = Ipv4Addr::from_str(&args.group_ip).with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
+    let nic = Ipv4Addr::from_str(&args.nic).with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
-    mcast_v4_readfrom(bind_sock_addr, grp, nic, printsrc, base64enc)?;
+    mcast_v4_readfrom(bind_sock_addr, grp, nic, args.print_src_addr, args.base64_enc)?;
     Ok(())
 }
 
-fn handle_send(grp_str: &str, port_str: &str, nic_str: &str) -> Result<(), Error> {
-    let port = u16::from_str(port_str).with_context(|_c| format!("Could not parse port number {}", port_str))?;
-    let grp = Ipv4Addr::from_str(grp_str).with_context(|_c| format!("Could not parse group address {}", grp_str))?;
-    let nic = Ipv4Addr::from_str(nic_str).with_context(|_c| format!("Could not parse nic address {}", nic_str))?;
+fn handle_send(args: SendArgs) -> Result<(), Error> {
+    let port = u16::from_str(&args.port).with_context(|_c| format!("Could not parse port number {}", args.port))?;
+    let grp = Ipv4Addr::from_str(&args.group_ip).with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
+    let nic = Ipv4Addr::from_str(&args.nic).with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
     mcast_v4_sendto(nic, SocketAddrV4::new(grp, port))?;
     Ok(())
 }
