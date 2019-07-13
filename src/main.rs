@@ -3,15 +3,15 @@ extern crate socket2;
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
 use std::io;
+use std::io::{Read, Stdout, Write};
 use std::net::Ipv4Addr;
 use std::net::SocketAddrV4;
 use std::str;
 use std::str::FromStr;
-use std::io::{Read, Write, Stdout};
 
-use failure::ResultExt;
-use failure::Error;
 use exitfailure::ExitFailure;
+use failure::Error;
+use failure::ResultExt;
 
 use structopt::StructOpt;
 
@@ -65,31 +65,47 @@ fn main() -> Result<(), ExitFailure> {
 
 fn handle_listen(args: ListenArgs) -> Result<(), Error> {
     let any = Ipv4Addr::new(0, 0, 0, 0);
-    let port = u16::from_str(&args.port).with_context(|_c| format!("Could not parse port number {}", args.port))?;
-    let grp = Ipv4Addr::from_str(&args.group_ip).with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
-    let nic = Ipv4Addr::from_str(&args.nic).with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
+    let port = u16::from_str(&args.port)
+        .with_context(|_c| format!("Could not parse port number {}", args.port))?;
+    let grp = Ipv4Addr::from_str(&args.group_ip)
+        .with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
+    let nic = Ipv4Addr::from_str(&args.nic)
+        .with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
     let bind_sock_addr = SocketAddrV4::new(any, port);
 
-    let socket = create_server_socket(bind_sock_addr, grp, nic).with_context(|_c| format!("Could not create socket"))?;
+    let socket = create_server_socket(bind_sock_addr, grp, nic)
+        .with_context(|_c| format!("Could not create socket"))?;
     read_loop(&socket, args.print_src_addr, args.base64_enc)?;
 
     Ok(())
 }
 
-fn create_server_socket(bindaddr: SocketAddrV4, mcastgrp: Ipv4Addr, interface: Ipv4Addr) -> Result<Socket, Error> {
+fn create_server_socket(
+    bindaddr: SocketAddrV4,
+    mcastgrp: Ipv4Addr,
+    interface: Ipv4Addr,
+) -> Result<Socket, Error> {
+
     let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let addr = SockAddr::from(bindaddr);
     socket.set_reuse_address(true)?;
     socket.set_reuse_port(true)?;
-    socket.bind(&addr).with_context(|_c| format!("could not bind on {}", bindaddr))?;
-    socket.join_multicast_v4(&mcastgrp, &interface).with_context(|_c| format!("could not use interface {}", interface))?;
+    socket
+        .bind(&addr)
+        .with_context(|_c| format!("could not bind on {}", bindaddr))?;
+    socket
+        .join_multicast_v4(&mcastgrp, &interface)
+        .with_context(|_c| format!("could not use interface {}", interface))?;
     Ok(socket)
 }
 
 fn handle_send(args: SendArgs) -> Result<(), Error> {
-    let port = u16::from_str(&args.port).with_context(|_c| format!("Could not parse port number {}", args.port))?;
-    let grp = Ipv4Addr::from_str(&args.group_ip).with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
-    let nic = Ipv4Addr::from_str(&args.nic).with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
+    let port = u16::from_str(&args.port)
+        .with_context(|_c| format!("Could not parse port number {}", args.port))?;
+    let grp = Ipv4Addr::from_str(&args.group_ip)
+        .with_context(|_c| format!("Could not parse group address {}", args.group_ip))?;
+    let nic = Ipv4Addr::from_str(&args.nic)
+        .with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
     mcast_v4_sendto(nic, SocketAddrV4::new(grp, port))?;
     Ok(())
 }
