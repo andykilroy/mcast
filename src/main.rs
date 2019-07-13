@@ -18,24 +18,39 @@ use exitfailure::ExitFailure;
 
 use structopt::StructOpt;
 
-#[derive(StructOpt)]
-#[structopt(about = "A tool for testing multicast UDP")]
+#[derive(Debug, StructOpt)]
+#[structopt(about = "A tool for testing multicast UDP", rename_all = "kebab-case")]
 enum CommandArgs {
+    #[structopt(name = "listen")]
+    /// Listen on a particular network interface for datagrams from a multicast group
     Listen {
+        /// The multicast group to join
         group_ip: String,
-        port: u16,
+        /// The port to bind on
+        port: String,
+        /// The network interface on which to send the join requests
         nic: String,
+        #[structopt(name = "printsrc", long)]
+        /// Print where the datagram came from
         print_src_addr: bool,
+        #[structopt(name = "base64", long)]
+        /// Encode incoming datagrams in base64
         base64_enc: bool,
     },
+    #[structopt(name = "send")]
+    /// Send datagrams to a multicast group via a particular network interface
     Send {
+        /// The multicast group to send to
         group_ip: String,
-        port: u16,
+        /// The destination port to send to
+        port: String,
+        /// The network interface on which to send the datagrams
         nic: String,
     }
 }
 
 fn main() -> Result<(), ExitFailure> {
+    let args = CommandArgs::from_args();
     let matches = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("A tool for testing multicast UDP")
