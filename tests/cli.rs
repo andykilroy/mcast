@@ -65,6 +65,17 @@ fn listen_not_enough_args() -> Result<(), Box<std::error::Error>> {
 }
 
 #[test]
+fn listen_must_be_given_at_least_one_multicast_group() -> Result<(), Box<std::error::Error>> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("listen").arg("192.168.3.32").arg("4001");
+    cmd.assert().failure().stderr(predicate::str::contains(
+        "The following required arguments were not provided",
+    ));
+    Ok(())
+}
+
+
+#[test]
 fn listen_to_malformed_ipv4_group() -> Result<(), Box<std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg("listen")

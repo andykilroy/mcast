@@ -22,7 +22,7 @@ use structopt::StructOpt;
 #[structopt(about = "A tool for testing multicast UDP", rename_all = "kebab-case")]
 enum CommandArgs {
     #[structopt(name = "listen")]
-    /// Listen on a particular network interface for datagrams from a multicast group
+    /// Listen on a particular network interface for datagrams from one or more multicast groups
     Listen(ListenArgs),
 
     #[structopt(name = "send")]
@@ -36,11 +36,13 @@ struct ListenArgs {
     nic: String,
     /// The port to bind on
     port: String,
-    /// Multicast groups to join
-    group_ips: Vec<String>,
+    /// A multicast group to join
+    group_ip: String,
+    /// Additional multicast groups to join
+    additional_grp_ips: Vec<String>,
 
     #[structopt(name = "printsrc", long)]
-    /// Print where the datagram came from
+    /// Print the incoming datagram's source address
     print_src_addr: bool,
     #[structopt(name = "base64", long)]
     /// Encode incoming datagrams in base64
@@ -68,14 +70,17 @@ fn main() -> Result<(), ExitFailure> {
 }
 
 fn handle_listen(args: ListenArgs) -> Result<(), Error> {
-    let any = Ipv4Addr::new(0, 0, 0, 0);
-    let port = u16::from_str(&args.port)
-        .with_context(|_c| format!("Could not parse port number {}", args.port))?;
     let nic = Ipv4Addr::from_str(&args.nic)
         .with_context(|_c| format!("Could not parse nic address {}", args.nic))?;
-    let bind_sock_addr = SocketAddrV4::new(any, port);
-
-    let grps = parse_ipv4_groups(&args.group_ips)?;
+    let port = u16::from_str(&args.port)
+        .with_context(|_c| format!("Could not parse port number {}", args.port))?;
+    let grps_as_strings: Vec<String> = {
+        let mut items = vec![args.group_ip.clone()];
+        items.extend(args.additional_grp_ips);
+        items
+    };
+    let grps = parse_ipv4_groups(&grps_as_strings)?;
+    let bind_sock_addr = SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), port);
 
     let socket = create_server_socket(bind_sock_addr, &grps, nic)
         .with_context(|_c| format!("Could not create socket"))?;
@@ -91,9 +96,6 @@ fn parse_ipv4_groups(groups_str: &[String]) -> Result<Vec<Ipv4Addr>, Error> {
             .with_context(|_c| format!("Could not parse group address {}", addr))?;
         grps.push(grp);
     }
-//    if grps.len() == 0 {
-//        return Err(format_err!("Expected at least one group address"));
-//    }
     Ok(grps)
 }
 
