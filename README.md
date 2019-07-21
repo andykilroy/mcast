@@ -2,8 +2,14 @@
 
 A command line tool to listen for or send multicast UDP datagrams.  
 
-This was originally motivated by an occasion where people believed
-multicast was enabled on the network but was actually misconfigured.
+This was motivated by an occasion where multicast was not functioning on
+a network, but it wasn't obvious why.  Since the sending application was
+sending UDP datagrams infrequently, it was difficult for a network
+engineer to tell why multicast receivers were not receiving datagrams.
+It would have been useful for the engineer to have a tool to trigger
+sends, or start up listening multicast clients, so that they had
+something to test with at the point the network was being configured.
+
 The tool acts as a means for a user to send test datagrams while a
 network admin is performing a packet capture, possibly on a different
 host/device to where the mcast tool is being invoked.  
@@ -26,8 +32,8 @@ So on and so forth
 END
 ```
 
-If working, the listen commands entered previously should print the exact 
-data that was entered in the send
+When working, the listen commands entered previously should print the
+exact data that was entered in the send
 
 ```
 Lorem ipsum etc, etc
