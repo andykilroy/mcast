@@ -102,7 +102,7 @@ fn ipv4_server_socket(args: &ListenV4Args) -> Result<Socket, Error> {
 
     socket.set_reuse_address(true)?;
 
-    #[cfg(all(target_family = "unix", not(target_os = "solaris")))]
+    #[cfg(all(target_family = "unix", feature = "bsdreuseport"))]
     socket.set_reuse_port(true)?;
 
     socket
