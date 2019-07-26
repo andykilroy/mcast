@@ -4,9 +4,6 @@ version = "0.1.4"
 authors = ["Andrew Kilroy <7545475+andykilroy@users.noreply.github.com>"]
 edition = "2018"
 
-[features]
-bsdreuseport = []
-
 [dependencies]
 clap = "2.33"
 base64 = "0.10"
@@ -14,10 +11,15 @@ failure = "0.1"
 exitfailure = "0.5"
 structopt = "0.2"
 
-[target.'cfg(feature = "bsdreuseport")'.dependencies]
+# We want reuseport if we are on a BSD based os.
+[target.'cfg(all(target_family = "unix", not(target_os = "solaris")))'.dependencies]
 socket2 = { version = "0.3.9", features = ["reuseport"] }
 
-[target.'cfg(not(feature = "bsdreuseport"))'.dependencies]
+# In all other cases, we do not want reuseport
+[target.'cfg(all(target_family = "unix", target_os = "solaris"))'.dependencies]
+socket2 = "0.3.9"
+
+[target.'cfg(not(target_family = "unix"))'.dependencies]
 socket2 = "0.3.9"
 
 [dev-dependencies]
