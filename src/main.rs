@@ -101,10 +101,7 @@ fn ipv4_server_socket(args: &ListenV4Args) -> Result<Socket, Error> {
     let addr = SockAddr::from(bindaddr);
 
     socket.set_reuse_address(true)?;
-
-    #[cfg(all(target_family = "unix", not(target_os = "solaris")))]
     socket.set_reuse_port(true)?;
-
     socket
         .bind(&addr)
         .with_context(|_c| format!("could not bind on {}", bindaddr))?;
