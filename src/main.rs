@@ -128,6 +128,10 @@ fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4, hop_count: u32) -> Result
     let snd_sock = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let bindaddr = SockAddr::from(SocketAddrV4::new(nic, 0));
     let dest = SockAddr::from(group);
+
+    // Don't set_multicast_ttl_v4 in solarish OSes until you know
+    // why this is erroring on illumos.
+    #[cfg(not(target_os = "solaris"))]
     snd_sock
         .set_multicast_ttl_v4(hop_count)
         .with_context(|_c| format!("could not set the hopcount (ttl) to {}", hop_count))?;
