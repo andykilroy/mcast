@@ -6,7 +6,8 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
-socket2 = { version = "0.3.9", features = ["reuseport"] }
+# socket2 = { version = "0.3.9", features = ["reuseport"] }
+socket2 = { path = "../socket2-rs", features = ["reuseport"] }
 base64 = "0.10"
 failure = "0.1"
 exitfailure = "0.5"

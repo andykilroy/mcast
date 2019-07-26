@@ -124,14 +124,22 @@ fn handle_send(args: SendV4Args) -> Result<(), Error> {
     Ok(())
 }
 
-fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4, hop_count: u32) -> io::Result<()> {
+fn mcast_v4_sendto(nic: Ipv4Addr, group: SocketAddrV4, hop_count: u32) -> Result<(), Error> {
     let snd_sock = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
     let bindaddr = SockAddr::from(SocketAddrV4::new(nic, 0));
     let dest = SockAddr::from(group);
-    snd_sock.set_multicast_ttl_v4(hop_count)?;
-    snd_sock.bind(&bindaddr)?;
+    snd_sock
+        .set_multicast_ttl_v4(hop_count)
+        .with_context(|_c| format!("could not set the hopcount (ttl) to {}", hop_count))?;
+    snd_sock
+        .bind(&bindaddr)
+        .with_context(|_c| format!("could not bind on {:?}", bindaddr))?;
     let mut istream = std::io::stdin();
+    perform_send(&snd_sock, &dest, &mut istream)?;
+    Ok(())
+}
 
+fn perform_send(snd_sock: &Socket, dest: &SockAddr, istream: &mut Read) -> io::Result<()> {
     let mut from_in: [u8; 65536] = [0; 65536];
     loop {
         match istream.read(&mut from_in) {
